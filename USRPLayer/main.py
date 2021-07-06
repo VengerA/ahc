@@ -15,6 +15,7 @@ from Ahc import GenericMessagePayload, GenericMessageHeader, GenericMessage, Eve
 from Channels import P2PFIFOPerfectChannel
 from LinkLayers.GenericLinkLayer import LinkLayer
 from NetworkLayers.AllSeeingEyeNetworkLayer import AllSeingEyeNetworkLayer
+from json import JSONEncoder, loads
 
 registry = ComponentRegistry()
 
@@ -116,6 +117,33 @@ class AdHocNode(ComponentModel):
     self.connect_me_to_component(ConnectorTypes.UP, self.linklayer)
 
     super().__init__(componentname, componentid)
+
+class Encoder(JSONEncoder):
+  def default(self, o):
+    return o.__dict__
+  
+class PhysicalLayer(ComponentModel):
+  def on_init(self, eventobj):
+    print(f"Initializing Physical Layer {self.componentname}.{self.componentinstancenumber}")
+    check_signal()
+  
+    def on_message_from_top(self, eventobj: Event):
+      f = open("tx{self.componentinstancenumber}.txt", "w")
+      f.write(Encoder.encode(Event))
+
+    
+    def check_signal(self):
+      f = open('rx{self.componentinstancenumber}.txt', "r")
+      data = f.read()
+      data = loads(data)
+      while(True):
+        if not data.eventsource and data.eventsource != self.componentinstancenumber:  
+          continue
+        event = Event(self, EventTypes.MFRB, data.eventcontent, data.fromchannel)
+        on_message_from_bottom(event)
+
+    def on_message_from_bottom(self, eventobj: Event): 
+      self.send_up(Event)
 
 def main():
   # G = nx.Graph()
